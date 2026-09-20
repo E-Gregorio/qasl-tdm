@@ -1,0 +1,31 @@
+# Entornos
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Datos locales: el pool se regenera con `python cli.py seed-all`
+data/*.db
+data/*.db-shm
+data/*.db-wal
+*.csv
+
+# Secretos
+.env
+
+# Documentos personales y salidas de herramientas: NO van a un repo publico
+Claude outputs/
+CV_*
+*.pdf
+*.docx
+
+# Editores
+.vscode/
+.idea/

@@ -1,0 +1,30 @@
+# PostgreSQL para probar la concurrencia real de QASL-TDM.
+#
+#   docker compose up -d
+#   $env:QASL_TDM_DATABASE_URL = "postgresql+psycopg://qasl:qasl@localhost:5432/qasl_tdm"
+#   python cli.py init
+#
+# Sobre SQLite el codigo funciona, pero la reserva usa un UPDATE condicional
+# con reintentos porque SQLite no tiene SKIP LOCKED. Con PostgreSQL se usa
+# SELECT ... FOR UPDATE SKIP LOCKED, que es la forma correcta.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: qasl-tdm-postgres
+    environment:
+      POSTGRES_USER: qasl
+      POSTGRES_PASSWORD: qasl
+      POSTGRES_DB: qasl_tdm
+    ports:
+      - "5432:5432"
+    volumes:
+      - qasl_tdm_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qasl -d qasl_tdm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  qasl_tdm_pgdata:

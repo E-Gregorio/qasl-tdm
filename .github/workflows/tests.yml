@@ -1,0 +1,68 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+
+  sqlite:
+    name: SQLite · Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Correr la suite
+        run: pytest -q
+
+  postgres:
+    name: PostgreSQL · FOR UPDATE SKIP LOCKED
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: qasl
+          POSTGRES_PASSWORD: qasl
+          POSTGRES_DB: qasl_tdm
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt "psycopg[binary]"
+
+      # La misma suite, contra el motor real. Ejercita el camino de reserva
+      # con FOR UPDATE SKIP LOCKED, que sobre SQLite no se puede probar.
+      - name: Correr la suite contra PostgreSQL
+        env:
+          QASL_TDM_DATABASE_URL: postgresql+psycopg://qasl:qasl@localhost:5432/qasl_tdm
+        run: pytest -q

@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="QASL-TDM: arquitectura del ciclo de vida de un dato de prueba y los nueve pasos que ejecuta demo.py.">
+<style>
+  html { color-scheme: light dark; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+<title>Ciclo de vida QASL-TDM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+  :root {
+    --ground:   #f6f4ef;
+    --surface:  #fffefb;
+    --sunken:   #edeae3;
+    --text:     #1b2027;
+    --muted:    #5d6774;
+    --faint:    #8b95a1;
+    --rule:     #dcd7cd;
+    --rule-hard:#c3bcae;
+    --accent:   #9a6a1e;
+    --accent-soft: #f0e3cb;
+
+    --st-ok:    #2f7256;
+    --st-ok-bg: #e2eee8;
+    --st-hold:  #35648f;
+    --st-hold-bg:#e1eaf3;
+    --st-bad:   #9c4227;
+    --st-bad-bg:#f4e3dd;
+
+    --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    --wrap: 940px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:   #11151b;
+      --surface:  #191e26;
+      --sunken:   #0d1116;
+      --text:     #e7e4dd;
+      --muted:    #9aa5b2;
+      --faint:    #6f7986;
+      --rule:     #2a323d;
+      --rule-hard:#3b4553;
+      --accent:   #d7a247;
+      --accent-soft: #33291a;
+
+      --st-ok:    #56b48e;
+      --st-ok-bg: #16281f;
+      --st-hold:  #74a8dc;
+      --st-hold-bg:#152331;
+      --st-bad:   #e08163;
+      --st-bad-bg:#2c1a13;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:   #11151b;
+    --surface:  #191e26;
+    --sunken:   #0d1116;
+    --text:     #e7e4dd;
+    --muted:    #9aa5b2;
+    --faint:    #6f7986;
+    --rule:     #2a323d;
+    --rule-hard:#3b4553;
+    --accent:   #d7a247;
+    --accent-soft: #33291a;
+
+    --st-ok:    #56b48e;
+    --st-ok-bg: #16281f;
+    --st-hold:  #74a8dc;
+    --st-hold-bg:#152331;
+    --st-bad:   #e08163;
+    --st-bad-bg:#2c1a13;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: var(--wrap);
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 0 72px;
+  }
+
+  .prose { max-width: 66ch; }
+
+  /* ---------- encabezado ---------- */
+
+  header.head {
+    padding-block: 56px 40px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+
+  h1 {
+    font-size: clamp(30px, 6vw, 46px);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.08;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+
+  .thesis {
+    font-size: clamp(17px, 2.6vw, 20px);
+    line-height: 1.5;
+    color: var(--muted);
+    margin: 0;
+    max-width: 60ch;
+  }
+
+  .runline {
+    margin-top: 28px;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 9px 14px;
+    background: var(--sunken);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 14px;
+  }
+  .runline .dollar { color: var(--faint); }
+  .runline .cmd { color: var(--accent); font-weight: 500; }
+
+  /* ---------- secciones ---------- */
+
+  section { padding-block: 52px 0; }
+
+  h2 {
+    font-size: 13px;
+    font-family: var(--mono);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 0 0 8px;
+  }
+
+  .lead {
+    font-size: clamp(20px, 3.4vw, 26px);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    margin: 0 0 16px;
+    text-wrap: balance;
+  }
+
+  p { margin: 0 0 16px; }
+  p:last-child { margin-bottom: 0; }
+
+  strong { font-weight: 600; }
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--sunken);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+
+  /* ---------- figuras ---------- */
+
+  figure {
+    margin: 32px 0 0;
+    padding: 0;
+  }
+  .figbox {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 20px 18px;
+    overflow-x: auto;
+  }
+  .figbox svg {
+    display: block;
+    width: 100%;
+    min-width: 560px;
+    max-width: 100%;
+    height: auto;
+    color: var(--text);
+  }
+  figcaption {
+    margin-top: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--muted);
+    max-width: 62ch;
+  }
+
+  .svg-box     { fill: var(--surface); stroke: var(--rule-hard); stroke-width: 1.25; }
+  .svg-box-alt { fill: var(--sunken);  stroke: var(--rule-hard); stroke-width: 1.25; }
+  .svg-pool    { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .svg-t       { font-family: var(--sans); font-size: 14px; font-weight: 600; fill: var(--text); }
+  .svg-s       { font-family: var(--sans); font-size: 12px; fill: var(--muted); }
+  .svg-m       { font-family: var(--mono); font-size: 12px; fill: var(--text); }
+  .svg-lbl     { font-family: var(--mono); font-size: 11px; fill: var(--accent); font-weight: 500; }
+  .svg-cap     { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; fill: var(--faint); }
+  .svg-line    { stroke: var(--rule-hard); stroke-width: 1.5; fill: none; }
+
+  .n-ok   { fill: var(--st-ok-bg);   stroke: var(--st-ok);   stroke-width: 1.5; }
+  .n-hold { fill: var(--st-hold-bg); stroke: var(--st-hold); stroke-width: 1.5; }
+  .n-bad  { fill: var(--st-bad-bg);  stroke: var(--st-bad);  stroke-width: 1.5; }
+  .t-ok   { fill: var(--st-ok); }
+  .t-hold { fill: var(--st-hold); }
+  .t-bad  { fill: var(--st-bad); }
+
+  /* ---------- pasos ---------- */
+
+  ol.steps {
+    list-style: none;
+    margin: 32px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 2px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  ol.steps > li {
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: 54px 1fr;
+    gap: 0 16px;
+    padding: 20px 20px 20px 16px;
+  }
+
+  .num {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    padding-top: 3px;
+    letter-spacing: 0.04em;
+  }
+
+  .step-h {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 4px;
+  }
+
+  .call {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--muted);
+    margin: 0 0 10px;
+    word-break: break-word;
+  }
+  .call .verb { color: var(--accent); font-weight: 600; }
+
+  .step-b {
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--muted);
+    margin: 0;
+    max-width: 58ch;
+  }
+  .step-b + .step-b { margin-top: 10px; }
+  .step-b strong { color: var(--text); font-weight: 600; }
+
+  .transition {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .transition .to { color: var(--faint); }
+
+  .st {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  .st-ok   { color: var(--st-ok);   border-color: var(--st-ok);   background: var(--st-ok-bg); }
+  .st-hold { color: var(--st-hold); border-color: var(--st-hold); background: var(--st-hold-bg); }
+  .st-bad  { color: var(--st-bad);  border-color: var(--st-bad);  background: var(--st-bad-bg); }
+  .st-none { color: var(--faint);   border-color: var(--rule-hard); background: var(--sunken); }
+
+  /* ---------- nota ---------- */
+
+  .note {
+    margin-top: 32px;
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    border-top: 1px solid var(--rule);
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    border-radius: 0 4px 4px 0;
+    padding: 18px 20px;
+  }
+  .note p { font-size: 15px; max-width: 58ch; }
+  .note .note-k {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 8px;
+  }
+
+  /* ---------- terminales ---------- */
+
+  .terms {
+    margin-top: 32px;
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+
+  .term {
+    background: var(--sunken);
+    border: 1px solid var(--rule-hard);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .term-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 14px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--rule);
+  }
+  .term-name {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .term-state {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--faint);
+  }
+  .term pre {
+    margin: 0;
+    padding: 16px 14px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.85;
+    overflow-x: auto;
+    color: var(--text);
+  }
+  .term .p { color: var(--faint); }
+  .term .c { color: var(--accent); }
+  .term .hash { color: var(--muted); }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-size: 13.5px;
+    color: var(--faint);
+    max-width: 62ch;
+  }
+  footer code { background: none; border: none; padding: 0; color: var(--muted); }
+
+  @media (max-width: 560px) {
+    ol.steps > li { grid-template-columns: 1fr; gap: 6px; }
+    .num { padding-top: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="head">
+    <p class="eyebrow">QASL-TDM · demo.py</p>
+    <h1>Ciclo de vida de un dato de prueba</h1>
+    <p class="thesis">
+      Los datos se preparan antes, por lote. El test no crea nada: pide una
+      condición de negocio, recibe un registro que ya existía y lo devuelve al
+      terminar.
+    </p>
+    <div class="runline">
+      <span class="dollar">&gt;</span><span class="cmd">python demo.py</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>Arquitectura</h2>
+    <p class="lead">Tres actores, dos ritmos, un pool</p>
+    <div class="prose">
+      <p>
+        La confusión habitual es pensar que crear y consumir datos son el mismo
+        proceso. No lo son: tienen ritmos distintos y por eso viven en módulos
+        separados. La mitad batch corre en un job y nadie la espera. La mitad de
+        runtime responde a cada test en milisegundos.
+      </p>
+    </div>
+
+    <figure>
+      <div class="figbox">
+        <svg viewBox="0 0 860 440" role="img"
+             aria-label="El operador usa la terminal y alimenta la mitad batch, que escribe en el pool. El automatizador usa el SDK y alimenta la mitad runtime, que lee y marca registros del pool.">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <!-- actores -->
+          <rect class="svg-box" x="60" y="16" width="280" height="58" rx="3"/>
+          <text class="svg-t" x="200" y="40" text-anchor="middle">Operador</text>
+          <text class="svg-s" x="200" y="60" text-anchor="middle">vos, o un job nocturno</text>
+
+          <rect class="svg-box" x="520" y="16" width="280" height="58" rx="3"/>
+          <text class="svg-t" x="660" y="40" text-anchor="middle">Automatizador</text>
+          <text class="svg-s" x="660" y="60" text-anchor="middle">el test que corre</text>
+
+          <!-- bajadas -->
+          <g color="var(--rule-hard)">
+            <line class="svg-line" x1="200" y1="76" x2="200" y2="144" marker-end="url(#ar)"/>
+            <line class="svg-line" x1="660" y1="76" x2="660" y2="144" marker-end="url(#ar)"/>
+          </g>
+          <text class="svg-lbl" x="212" y="114">python cli.py</text>
+          <text class="svg-lbl" x="672" y="114">tdm.scenario()</text>
+
+          <!-- mitades -->
+          <rect class="svg-box-alt" x="50" y="150" width="300" height="146" rx="3"/>
+          <text class="svg-cap" x="200" y="176" text-anchor="middle">MITAD BATCH</text>
+          <text class="svg-s" x="200" y="200" text-anchor="middle">por lote · nadie la espera</text>
+          <text class="svg-m" x="200" y="238" text-anchor="middle">SEED · LOAD · MASK</text>
+          <text class="svg-m" x="200" y="260" text-anchor="middle">REFRESH</text>
+          <text class="svg-s" x="200" y="282" text-anchor="middle">produce datos nuevos, enmascarados</text>
+
+          <rect class="svg-box-alt" x="510" y="150" width="300" height="146" rx="3"/>
+          <text class="svg-cap" x="660" y="176" text-anchor="middle">MITAD RUNTIME</text>
+          <text class="svg-s" x="660" y="200" text-anchor="middle">por test · en milisegundos</text>
+          <text class="svg-m" x="660" y="238" text-anchor="middle">RESERVE · RELEASE</text>
+          <text class="svg-m" x="660" y="260" text-anchor="middle">RESET</text>
+          <text class="svg-s" x="660" y="282" text-anchor="middle">entrega un dato y lo recupera</text>
+
+          <!-- convergencia al pool -->
+          <g color="var(--rule-hard)">
+            <path class="svg-line" d="M 200 298 Q 200 350 316 366" marker-end="url(#ar)"/>
+            <path class="svg-line" d="M 660 298 Q 660 350 544 366" marker-end="url(#ar)"/>
+          </g>
+          <text class="svg-lbl" x="196" y="344" text-anchor="end">escribe</text>
+          <text class="svg-lbl" x="664" y="344">lee y marca</text>
+
+          <!-- pool -->
+          <rect class="svg-pool" x="320" y="366" width="220" height="60" rx="3"/>
+          <text class="svg-t" x="430" y="391" text-anchor="middle">EL POOL</text>
+          <text class="svg-s" x="430" y="411" text-anchor="middle">SQLite · 300 registros con estado</text>
+        </svg>
+      </div>
+      <figcaption>
+        El pool es la única pieza compartida. Todo lo que hace el operador
+        termina escribiéndose ahí; todo lo que pide un test se resuelve leyendo
+        y marcando una fila.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Estados</h2>
+    <p class="lead">Por dónde pasa un registro</p>
+    <div class="prose">
+      <p>
+        Cada fila del pool está siempre en uno de tres estados. Las transiciones
+        no son libres: hay exactamente cinco caminos, y el que más importa es el
+        que <em>no</em> existe — una reserva vencida nunca vuelve directo a
+        disponible.
+      </p>
+    </div>
+
+    <figure>
+      <div class="figbox">
+        <svg viewBox="0 0 860 370" role="img"
+             aria-label="AVAILABLE pasa a RESERVED con RESERVE. RESERVED vuelve a AVAILABLE con RELEASE limpio, o pasa a DIRTY con RELEASE sucio o cuando vence el TTL. DIRTY vuelve a AVAILABLE solo con RESET.">
+          <defs>
+            <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <rect class="n-ok"   x="50"  y="130" width="160" height="64" rx="3"/>
+          <text class="svg-m t-ok"   x="130" y="158" text-anchor="middle">AVAILABLE</text>
+          <text class="svg-s"        x="130" y="178" text-anchor="middle">listo para entregar</text>
+
+          <rect class="n-hold" x="350" y="130" width="160" height="64" rx="3"/>
+          <text class="svg-m t-hold" x="430" y="158" text-anchor="middle">RESERVED</text>
+          <text class="svg-s"        x="430" y="178" text-anchor="middle">tomado, con TTL</text>
+
+          <rect class="n-bad"  x="650" y="130" width="160" height="64" rx="3"/>
+          <text class="svg-m t-bad"  x="730" y="158" text-anchor="middle">DIRTY</text>
+          <text class="svg-s"        x="730" y="178" text-anchor="middle">usado, sin revisar</text>
+
+          <g color="var(--rule-hard)">
+            <line class="svg-line" x1="210" y1="162" x2="344" y2="162" marker-end="url(#ar2)"/>
+            <line class="svg-line" x1="510" y1="162" x2="644" y2="162" marker-end="url(#ar2)"/>
+            <path class="svg-line" d="M 470 130 Q 585 60 700 128" marker-end="url(#ar2)"/>
+            <path class="svg-line" d="M 400 194 Q 290 254 178 198" marker-end="url(#ar2)"/>
+            <path class="svg-line" d="M 700 196 Q 420 330 100 198" marker-end="url(#ar2)"/>
+          </g>
+
+          <text class="svg-lbl" x="277" y="150" text-anchor="middle">RESERVE</text>
+          <text class="svg-lbl" x="577" y="150" text-anchor="middle">RELEASE dirty</text>
+          <text class="svg-lbl" x="585" y="52"  text-anchor="middle">vence el TTL</text>
+          <text class="svg-lbl" x="290" y="272" text-anchor="middle">RELEASE clean</text>
+          <text class="svg-lbl" x="400" y="340" text-anchor="middle">RESET</text>
+        </svg>
+      </div>
+      <figcaption>
+        Las dos flechas que llegan a DIRTY son la decisión de diseño del
+        proyecto: si un test modificó el dato, o murió a mitad de camino, el
+        registro queda fuera de circulación hasta que RESET le restaura la
+        condición de negocio.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Recorrido</h2>
+    <p class="lead">Los nueve pasos de <code>demo.py</code></p>
+    <div class="prose">
+      <p>
+        El orden importa: cada paso deja al pool en el estado que necesita el
+        siguiente. La columna de la derecha muestra qué le pasa al registro.
+      </p>
+    </div>
+
+    <ol class="steps">
+
+      <li>
+        <div class="num">01</div>
+        <div>
+          <h3 class="step-h">Estado inicial del pool</h3>
+          <p class="call"><span class="verb">GET</span> /tdm/pool/stats</p>
+          <p class="step-b">
+            El inventario: cuántos registros hay de cada escenario y en qué
+            estado. Es lo que se mira antes de lanzar una regresión, y lo que
+            responde la pregunta <strong>“¿tengo datos para correr mañana?”</strong>
+            sin preguntarle a nadie.
+          </p>
+        </div>
+      </li>
+
+      <li>
+        <div class="num">02</div>
+        <div>
+          <h3 class="step-h">SEED — acá nacen los datos</h3>
+          <p class="call"><span class="verb">POST</span> /tdm/pool/seed</p>
+          <p class="step-b">
+            No se le pasan valores, se le pasa el <strong>nombre de un
+            escenario</strong>. El generador arma registros que cumplen esa
+            condición de negocio, con CUIT, CBU y tarjeta de dígito verificador
+            correcto, y los enmascara antes de guardarlos.
+          </p>
+          <div class="transition">
+            <span class="st st-none">no existía</span>
+            <span class="to">→</span>
+            <span class="st st-ok">AVAILABLE</span>
+          </div>
+        </div>
+      </li>
+
+      <li>
+        <div class="num">03</div>
+        <div>
+          <h3 class="step-h">RESERVE — un test pide un dato</h3>
+          <p class="call"><span class="verb">POST</span> /tdm/reserve</p>
+          <p class="step-b">
+            Acá <strong>no se crea nada</strong>. Un <code>SELECT</code> busca el
+            primer registro disponible del escenario y un <code>UPDATE</code> lo
+            marca como tomado. El test no sabe qué cliente le van a dar, y no le
+            importa.
+          </p>
+          <div class="transition">
+            <span class="st st-ok">AVAILABLE</span>
+            <span class="to">→</span>
+            <span class="st st-hold">RESERVED</span>
+          </div>
+        </div>
+      </li>
+
+      <li>
+        <div class="num">04</div>
+        <div>
+          <h3 class="step-h">Concurrencia — otro test pide a la vez</h3>
+          <p class="call"><span class="verb">POST</span> /tdm/reserve <span style="color:var(--faint)">· worker-2</span></p>
+          <p class="step-b">
+            Recibe <strong>otro registro</strong>, nunca el mismo. Lo garantiza la
+            condición dentro del <code>UPDATE</code>: “marcalo solo si sigue
+            disponible”. El que llega segundo actualiza cero filas y reintenta.
+          </p>
+          <p class="step-b">
+            Sin esto, dos tests en paralelo agarran el mismo cliente, los dos le
+            cambian el saldo y los dos fallan por motivos que nadie entiende.
+          </p>
+        </div>
+      </li>
+
+      <li>
+        <div class="num">05</div>
+        <div>
+          <h3 class="step-h">La reserva tiene dueño</h3>
+          <p class="call"><span class="verb">POST</span> /tdm/release <span style="color:var(--faint)">· 409 Conflict</span></p>
+          <p class="step-b">
+            worker-2 intenta liberar el dato de worker-1 y el servicio lo rechaza.
+            Protege contra el caso real: un teardown mal escrito que limpia de más.
+          </p>
+          <div class="transition">
+            <span class="st st-hold">RESERVED</span>
+            <span class="to">→</span>
+            <span class="st st-hold">RESERVED</span>
+            <span class="to">sin cambios</span>
+          </div>
+        </div>
+      </li>
+
+      <li>
+        <div class="num">06</div>
+        <div>
+          <h3 class="step-h">RELEASE — el test devuelve el dato</h3>
+          <p class="call"><span class="verb">POST</span> /tdm/release</p>
+          <p class="step-b">
+            Dos salidas posibles. <strong>CLEAN</strong>: el test no tocó el dato,
+            vuelve directo al pool. <strong>DIRTY</strong>: el test lo modificó,
+            queda fuera hasta que alguien lo restaure.
+          </p>
+          <div class="transition">
+            <span class="st st-hold">RESERVED</span>
+            <span class="to">→</span>
+            <span class="st st-ok">AVAILABLE</span>
+            <span class="to">o</span>
+            <span class="st st-bad">DIRTY</span>
+          </div>
+        </div>
+      </li>
+
+      <li>
+        <div class="num">07</div>
+        <div>
+          <h3 class="step-h">RESET — recuperar el dato sucio</h3>
+          <p class="call"><span class="verb">POST</span> /tdm/reset/{id}</p>
+          <p class="step-b">
+            Regenera la <strong>condición de negocio</strong> — saldo, estado de
+            cuenta, días de mora — y devuelve el registro al pool.
+          </p>
+          <p class="step-b">
+            No toca la <strong>identidad</strong>: DNI, CUIT, CBU y tarjeta siguen
+            siendo los mismos. Si cambiaran, un test que guardó el CBU para
+            verificar después dejaría de encontrarlo.
+          </p>
+          <div class="transition">
+            <span class="st st-bad">DIRTY</span>
+            <span class="to">→</span>
+            <span class="st st-ok">AVAILABLE</span>
+          </div>
+        </div>
+      </li>
+
+      <li>
+        <div class="num">08</div>
+        <div>
+          <h3 class="step-h">Auditoría — quién lo tocó y cuándo</h3>
+          <p class="call"><span class="verb">GET</span> /tdm/records/{id}/audit</p>
+          <p class="step-b">
+            La historia completa del registro, con actor y timestamp. No es un
+            documento que alguien escribe: es la traza que deja el sistema, y es
+            lo que exige el punto 9.2.2 de la Comunicación “A” 7724 del BCRA.
+          </p>
+        </div>
+      </li>
+
+      <li>
+        <div class="num">09</div>
+        <div>
+          <h3 class="step-h">EXPORT — volumen para JMeter</h3>
+          <p class="call"><span class="verb">GET</span> /tdm/pool/export <span style="color:var(--faint)">· reserve_for</span></p>
+          <p class="step-b">
+            Las pruebas de carga funcionan al revés: necesitan volumen
+            <strong>precargado</strong> en un CSV. Pedir un registro por iteración
+            convertiría al TDM en el cuello de botella de la propia prueba.
+          </p>
+          <p class="step-b">
+            Con <code>reserve_for</code>, cada corrida se lleva registros
+            distintos. Es lo que evita que la segunda pasada reutilice datos ya
+            quemados y dé falsos negativos.
+          </p>
+          <div class="transition">
+            <span class="st st-ok">AVAILABLE</span>
+            <span class="to">→</span>
+            <span class="st st-hold">RESERVED</span>
+            <span class="to">en lote, TTL largo</span>
+          </div>
+        </div>
+      </li>
+
+    </ol>
+
+    <div class="note">
+      <p class="note-k">Lo que no pasa en ningún paso</p>
+      <p>
+        El test nunca escribe un <code>INSERT</code>, nunca elige un cliente de
+        una lista y nunca limpia a mano. Pide una condición, recibe un registro
+        que ya existía y lo devuelve. Todo lo demás lo resuelve el pool.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Ejecución</h2>
+    <p class="lead">Dos terminales, en este orden</p>
+    <div class="prose">
+      <p>
+        Ambas paradas en <code>C:\Users\ELYER\Proyectos\QASL-TDM</code>, con el
+        entorno virtual activo. La primera queda ocupada mostrando logs; la
+        segunda es donde se trabaja.
+      </p>
+    </div>
+
+    <div class="terms">
+      <div class="term">
+        <div class="term-bar">
+          <span class="term-name">Terminal 1 · la API</span>
+          <span class="term-state">queda ocupada</span>
+        </div>
+<pre><span class="p">&gt;</span> <span class="c">.\.venv\Scripts\Activate.ps1</span>
+<span class="p">&gt;</span> <span class="c">uvicorn app.main:app --reload</span>
+
+<span class="hash"># Application startup complete.</span>
+<span class="hash"># no cerrar, no escribir nada más</span></pre>
+      </div>
+
+      <div class="term">
+        <div class="term-bar">
+          <span class="term-name">Terminal 2 · el recorrido</span>
+          <span class="term-state">libre</span>
+        </div>
+<pre><span class="p">&gt;</span> <span class="c">.\.venv\Scripts\Activate.ps1</span>
+<span class="p">&gt;</span> <span class="c">python cli.py refresh --min 50</span>
+<span class="p">&gt;</span> <span class="c">python cli.py stats</span>
+<span class="p">&gt;</span> <span class="c">python demo.py</span>
+
+<span class="hash"># al terminar, dejar todo como estaba</span>
+<span class="p">&gt;</span> <span class="c">python cli.py refresh --min 50</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    QASL-TDM · el recorrido lo ejecuta <code>demo.py</code>, que se frena en cada
+    paso esperando Enter. Para cortar la API, <code>Ctrl + C</code> en la terminal 1.
+  </footer>
+
+</div>
+</body>
+</html>

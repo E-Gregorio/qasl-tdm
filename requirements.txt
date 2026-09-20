@@ -1,0 +1,10 @@
+fastapi==0.141.1
+uvicorn==0.53.0
+pydantic==2.13.5
+SQLAlchemy==2.0.54
+python-stdnum==2.1
+httpx==0.28.1
+pytest==9.1.1
+
+# PostgreSQL: descomentar para usar el motor con FOR UPDATE SKIP LOCKED.
+# psycopg[binary]==3.2.3
